@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@types/howler": "^2.2.12",
     "@types/three": "^0.169.0",
     "lil-gui": "^0.19.2",
     "typescript": "~5.6.2",
@@ -16,6 +17,7 @@
   },
   "dependencies": {
     "gsap": "file:gsap-bonus.tgz",
+    "howler": "^2.2.4",
     "three": "^0.169.0"
   }
 }

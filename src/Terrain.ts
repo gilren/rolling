@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { pow } from 'three/webgpu';
 
 export class Terrain extends THREE.Mesh {
   size: number;
@@ -9,8 +10,9 @@ export class Terrain extends THREE.Mesh {
     this.size = size;
 
     this.createGometry();
-    this.material = new THREE.MeshStandardMaterial({
+    this.material = new THREE.MeshToonMaterial({
       color: 0xcccccc,
+      // wireframe: true,
     });
 
     this.rotation.x = -Math.PI / 2;
@@ -19,7 +21,12 @@ export class Terrain extends THREE.Mesh {
 
   public createGometry() {
     this.geometry?.dispose();
-    this.geometry = new THREE.PlaneGeometry(this.size, this.size);
+    this.geometry = new THREE.PlaneGeometry(
+      Math.pow(this.size, 2.5),
+      Math.pow(this.size, 2.5),
+      this.size,
+      this.size
+    );
     this.position.set(this.size / 2, 0, this.size / 2);
   }
 }
