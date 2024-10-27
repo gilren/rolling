@@ -105,7 +105,6 @@ export class CubeManager {
     const startZ =
       Math.floor(randomInt(-this.size, this.size + this.size)) + 0.5;
 
-    // const startY = this.size + Math.random() * 5;
     let startX = 0;
     if (startZ > -0.5 && startZ < this.size) {
       startX =
@@ -141,29 +140,29 @@ export class CubeManager {
     const currentMatrix = new THREE.Matrix4();
     this.instance.getMatrixAt(index, currentMatrix);
 
-    this.path = this.searchPath(index);
+    const path = this.searchPath(index);
 
-    // console.log(index, this.path);
+    // console.log(index, path);
 
-    const sphere = new THREE.SphereGeometry(0.1);
-    const color = new THREE.Color(0x0000ff);
-    color.setHex(Math.random() * 0xffffff);
+    // const sphere = new THREE.SphereGeometry(0.1);
+    // const color = new THREE.Color(0x0000ff);
+    // color.setHex(Math.random() * 0xffffff);
 
-    // this.scene.add(pathIndicator(ref.start));
+    // // this.scene.add(pathIndicator(ref.start));
 
-    this.path?.forEach((position) => {
-      const mesh = new THREE.Mesh(
-        sphere,
-        new THREE.MeshBasicMaterial({ color: color })
-      );
-      mesh.position.set(position.x, position.y, position.z);
-      this.scene.add(mesh);
-    });
+    // path?.forEach((position) => {
+    //   const mesh = new THREE.Mesh(
+    //     sphere,
+    //     new THREE.MeshBasicMaterial({ color: color })
+    //   );
+    //   mesh.position.set(position.x, position.y, position.z);
+    //   this.scene.add(mesh);
+    // });
 
     const tl = gsap.timeline({
       onComplete: () => {
         if (this.iterative) {
-          this.moveAlongPath(index, this.path!).then(() => {
+          this.moveAlongPath(index, path!).then(() => {
             // if (this.stepIndex < 1) {
             ref.isVisible = true;
             this.stepIndex++;
@@ -182,6 +181,12 @@ export class CubeManager {
       }, this.delay);
     }
 
+    const revealPosition = new THREE.Vector3();
+    revealPosition.copy(ref.current);
+    revealPosition.y = this.size + Math.random() * 5;
+    currentMatrix.setPosition(revealPosition);
+    this.updateInstanceMatrix(index, currentMatrix);
+
     let scale = new THREE.Vector3();
     tl.to(scale, {
       x: 1,
@@ -198,19 +203,21 @@ export class CubeManager {
 
       onUpdate: () => {
         currentMatrix.makeScale(scale.x, scale.y, scale.z);
-        currentMatrix.setPosition(ref.current);
+        currentMatrix.setPosition(revealPosition);
 
         this.updateInstanceMatrix(index, currentMatrix);
       },
     });
 
-    tl.to(ref.current, {
+    console.log(ref);
+
+    tl.to(revealPosition, {
       y: 0.5,
       duration: this.speed,
       ease: 'power2.inOut',
 
       onUpdate: () => {
-        currentMatrix.setPosition(ref.current);
+        currentMatrix.setPosition(revealPosition);
         this.updateInstanceMatrix(index, currentMatrix);
       },
     });
@@ -231,7 +238,7 @@ export class CubeManager {
 
         onUpdate: () => {
           currentMatrix.makeScale(scale2.x, scale2.y, scale2.z);
-          currentMatrix.setPosition(ref.current);
+          currentMatrix.setPosition(revealPosition);
 
           this.updateInstanceMatrix(index, currentMatrix);
         },
@@ -240,14 +247,14 @@ export class CubeManager {
     );
 
     tl.to(
-      ref.current,
+      revealPosition,
       {
         y: 0,
         duration: this.speed / 4,
         ease: 'power2.inOut',
 
         onUpdate: () => {
-          currentMatrix.setPosition(ref.current);
+          currentMatrix.setPosition(revealPosition);
 
           this.updateInstanceMatrix(index, currentMatrix);
         },
@@ -255,7 +262,7 @@ export class CubeManager {
       '<'
     );
 
-    tl.to(ref.current, {
+    tl.to(revealPosition, {
       y: 0.5,
       duration: this.speed / 4,
       ease: 'power2.inOut',
@@ -275,7 +282,7 @@ export class CubeManager {
         ease: 'power2.inOut',
         onUpdate: () => {
           currentMatrix.makeScale(scale2.x, scale2.y, scale2.z);
-          currentMatrix.setPosition(ref.current);
+          currentMatrix.setPosition(revealPosition);
 
           this.updateInstanceMatrix(index, currentMatrix);
         },
@@ -284,6 +291,7 @@ export class CubeManager {
       '<'
     );
   }
+
   async moveAlongPath(index: number, paths: THREE.Vector3[]): Promise<void> {
     const ref = this.references[index];
     let currentPosition = new THREE.Vector3().copy(ref.current);
@@ -375,7 +383,11 @@ export class CubeManager {
     const start = ref.start;
     const destination = ref.destination;
 
+    // console.log(ref.current.y);
+
     // destination.y = 0.5;
+
+    // If destination is higher in the y axis and no cube is benath it, go to the next cube
 
     // this.scene.add(pathIndicator(destination, 0xff0000));
 

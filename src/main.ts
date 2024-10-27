@@ -73,7 +73,7 @@ class App {
   }
 
   initManagers() {
-    this.cubeManager = new CubeManager(this.scene, this.size, this.gui);
+    this.cubeManager = new CubeManager(this.scene, this.size);
   }
 
   initStats() {

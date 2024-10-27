@@ -12,7 +12,7 @@ export class Terrain extends THREE.Mesh {
     this.createGometry();
     this.material = new THREE.MeshToonMaterial({
       color: 0xcccccc,
-      wireframe: true,
+      // wireframe: true,
     });
 
     this.rotation.x = -Math.PI / 2;
