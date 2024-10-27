@@ -44,7 +44,7 @@ export function shuffle(array: any[]) {
 }
 
 const soundPop = new Howl({
-  src: ['./src/pop.mp3'],
+  src: ['./src/sounds/pop.mp3'],
   // onload: function () {
   //   console.log('Sound loaded successfully');
   // },
@@ -52,7 +52,7 @@ const soundPop = new Howl({
 });
 
 const soundRoll = new Howl({
-  src: ['./src/roll.mp3'],
+  src: ['./src/sounds/roll.mp3'],
   // onload: function () {
   //   console.log('Sound loaded successfully');
   // },
@@ -60,7 +60,7 @@ const soundRoll = new Howl({
 });
 
 const soundSqueakIn = new Howl({
-  src: ['./src/squeak_in.mp3'],
+  src: ['./src/sounds/squeak_in.mp3'],
   // onload: function () {
   //   console.log('Sound loaded successfully');
   // },
@@ -68,7 +68,7 @@ const soundSqueakIn = new Howl({
 });
 
 const soundSqueakOut = new Howl({
-  src: ['./src/squeak_out.mp3'],
+  src: ['./src/sounds/squeak_out.mp3'],
   // onload: function () {
   //   console.log('Sound loaded successfully');
   // },
