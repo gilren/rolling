@@ -83,13 +83,11 @@ export const sounds = {
 };
 
 export type Reference = {
-  id: string;
+  id: number;
   start: THREE.Vector3;
   destination: THREE.Vector3;
   current: THREE.Vector3;
-  isVisible: boolean;
   isAtDestination: boolean;
-  // matrix: THREE.Matrix4;
 };
 
 export const clamp = (num: number, lower: number, upper: number) => {

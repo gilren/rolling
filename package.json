@@ -16,6 +16,7 @@
     "vite": "^5.4.9"
   },
   "dependencies": {
+    "@datastructures-js/priority-queue": "^6.3.1",
     "gsap": "file:gsap-bonus.tgz",
     "howler": "^2.2.4",
     "three": "^0.169.0"
