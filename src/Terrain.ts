@@ -1,4 +1,4 @@
-import { clamp } from './utils';
+import { clamp } from './utils/utils';
 import * as THREE from 'three';
 
 export class Terrain extends THREE.Mesh {

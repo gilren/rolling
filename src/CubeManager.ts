@@ -9,7 +9,7 @@ import {
   shuffle,
   sounds,
   vectorToKey,
-} from './utils';
+} from './utils/utils';
 import { COLORS, DELAY, ITERATIVE, SHOW_ALL, SHUFFLE, SPEED } from './settings';
 
 export class CubeManager {
@@ -41,20 +41,58 @@ export class CubeManager {
     this.size = size;
     this.count = Math.pow(size, 3);
 
-    // console.log(gui);
-    // gui.onChange(() => {
-    //   this.reset();
-    // });
+    this.initializeCubes();
 
-    this.createCubes();
+    // fake cubes for testing
+    // const ref: Reference = {
+    //   start: new THREE.Vector3(0.5, 0.5, 0.5),
+    //   destination: new THREE.Vector3(0.5, 0.5, 0.5),
+    //   current: new THREE.Vector3(0.5, 0.5, 0.5),
+    //   isAtDestination: true,
+    //   isVisible: true,
+    // };
+    // const ref2: Reference = {
+    //   start: new THREE.Vector3(1.5, 0.5, -0.5),
+    //   destination: new THREE.Vector3(1.5, 0.5, -0.5),
+    //   current: new THREE.Vector3(1.5, 0.5, -0.5),
+    //   isAtDestination: true,
+    //   isVisible: true,
+    // };
+    // const ref3: Reference = {
+    //   start: new THREE.Vector3(1.5, 0.5, 1.5),
+    //   destination: new THREE.Vector3(1.5, 0.5, 1.5),
+    //   current: new THREE.Vector3(1.5, 0.5, 1.5),
+    //   isAtDestination: true,
+    //   isVisible: true,
+    // };
+
+    // this.references.push(ref);
+    // this.references.push(ref2);
+    // this.references.push(ref3);
+
+    // const geometry = new RoundedBoxGeometry(1, 1, 1, 5, 0.0625);
+    // const material = new THREE.MeshPhongMaterial({ color: 0x00ff00 });
+    // const mesh = new THREE.Mesh(geometry, material);
+
+    // mesh.position.set(ref.current.x, ref.current.y, ref.current.z);
+    // this.scene.add(mesh);
+
+    // const mesh2 = new THREE.Mesh(geometry, material);
+    // mesh2.position.set(ref2.current.x, ref2.current.y, ref2.current.z);
+    // this.scene.add(mesh2);
+
+    // const mesh3 = new THREE.Mesh(geometry, material);
+    // mesh3.position.set(ref3.current.x, ref3.current.y, ref3.current.z);
+    // this.scene.add(mesh3);
+
     // console.log(this.references);
-    this.revealCube(this.stepIndex);
+    this.showCube(this.stepIndex);
 
     // this.revealCube(this.stepIndex).then(() => this.searchPath(this.stepIndex));
     // this.searchPath(this.stepIndex);
   }
 
-  createCubes() {
+  initializeCubes() {
     const geometry = new RoundedBoxGeometry(1, 1, 1, 5, 0.0625);
     const material = new THREE.MeshPhongMaterial({});
     this.instance = new THREE.InstancedMesh(geometry, material, this.count);
@@ -70,7 +108,7 @@ export class CubeManager {
           const endY = y + 0.5;
           const endZ = z + 0.5;
 
-          const startPosition = this.randomStartPosition();
+          const startPosition = this.generateRandomStartPosition();
           this.instance.setMatrixAt(index, startPosition.matrix);
 
           this.instance.setColorAt(
@@ -82,6 +120,7 @@ export class CubeManager {
 
           index++;
           const ref: Reference = {
+            id: `${endX},${endY},${endZ}`,
             start: startPosition.position,
             destination: new THREE.Vector3(endX, endY, endZ),
             current: startPosition.position,
@@ -100,7 +139,10 @@ export class CubeManager {
     this.scene.add(this.instance);
   }
 
-  randomStartPosition(): { position: THREE.Vector3; matrix: THREE.Matrix4 } {
+  generateRandomStartPosition(): {
+    position: THREE.Vector3;
+    matrix: THREE.Matrix4;
+  } {
     const matrix = new THREE.Matrix4();
     const startZ =
       Math.floor(randomInt(-this.size, this.size + this.size)) + 0.5;
@@ -132,7 +174,7 @@ export class CubeManager {
     };
   }
 
-  revealCube(index: number) {
+  showCube(index: number) {
     if (index === this.count) return;
 
     const ref = this.references[index];
@@ -140,33 +182,33 @@ export class CubeManager {
     const currentMatrix = new THREE.Matrix4();
     this.instance.getMatrixAt(index, currentMatrix);
 
-    const path = this.searchPath(index);
+    const path = this.findPathToDestination(index);
 
     // console.log(index, path);
 
-    // const sphere = new THREE.SphereGeometry(0.1);
-    // const color = new THREE.Color(0x0000ff);
-    // color.setHex(Math.random() * 0xffffff);
+    const sphere = new THREE.SphereGeometry(0.1);
+    const color = new THREE.Color(0x0000ff);
+    color.setHex(Math.random() * 0xffffff);
 
-    // // this.scene.add(pathIndicator(ref.start));
+    // this.scene.add(pathIndicator(ref.start));
 
-    // path?.forEach((position) => {
-    //   const mesh = new THREE.Mesh(
-    //     sphere,
-    //     new THREE.MeshBasicMaterial({ color: color })
-    //   );
-    //   mesh.position.set(position.x, position.y, position.z);
-    //   this.scene.add(mesh);
-    // });
+    path?.forEach((position) => {
+      const mesh = new THREE.Mesh(
+        sphere,
+        new THREE.MeshBasicMaterial({ color: color })
+      );
+      mesh.position.set(position.x, position.y, position.z);
+      this.scene.add(mesh);
+    });
 
     const tl = gsap.timeline({
       onComplete: () => {
         if (this.iterative) {
-          this.moveAlongPath(index, path!).then(() => {
+          this.animateMovementAlongPath(index, path!).then(() => {
             // if (this.stepIndex < 1) {
             ref.isVisible = true;
             this.stepIndex++;
-            this.revealCube(this.stepIndex);
+            this.showCube(this.stepIndex);
             // }
           });
         }
@@ -177,7 +219,7 @@ export class CubeManager {
     if (!this.iterative) {
       setTimeout(() => {
         this.stepIndex++;
-        this.moveAlongPath(index, this.path!);
+        this.animateMovementAlongPath(index, this.path!);
       }, this.delay);
     }
 
@@ -292,7 +334,10 @@ export class CubeManager {
     );
   }
 
-  async moveAlongPath(index: number, paths: THREE.Vector3[]): Promise<void> {
+  async animateMovementAlongPath(
+    index: number,
+    paths: THREE.Vector3[]
+  ): Promise<void> {
     const ref = this.references[index];
     let currentPosition = new THREE.Vector3().copy(ref.current);
 
@@ -314,7 +359,7 @@ export class CubeManager {
         const axis = Object.keys(direction)[0];
         const value = direction[axis];
 
-        await this.animateDirection(ref, axis, value, index); // Await each movement step to enforce sequence
+        await this.animateMovementInDirection(ref, axis, value, index); // Await each movement step to enforce sequence
         currentPosition = new THREE.Vector3().copy(path); // Update current position after each step
       }
 
@@ -323,7 +368,7 @@ export class CubeManager {
     });
   }
 
-  animateDirection(
+  animateMovementInDirection(
     ref: Reference,
     axis: 'x' | 'y' | 'z',
     value: number,
@@ -338,7 +383,8 @@ export class CubeManager {
 
       const currentRotation = new THREE.Euler(0, 0, 0);
       const tempTimeline = gsap.timeline({
-        onComplete: () => resolve(), // Resolve promise when this timeline completes
+        // Resolve promise when this timeline completes
+        onComplete: () => resolve(),
       });
 
       // Animate rotation
@@ -372,7 +418,7 @@ export class CubeManager {
     });
   }
 
-  searchPath(index: number): THREE.Vector3[] | null {
+  findPathToDestination(index: number): THREE.Vector3[] | null {
     const ref = this.references[index];
 
     console.log(
@@ -387,7 +433,7 @@ export class CubeManager {
 
     // destination.y = 0.5;
 
-    // If destination is higher in the y axis and no cube is benath it, go to the next cube
+    // If destination is higher in the y axis and no cube is beneath it, go to the next cube
 
     // this.scene.add(pathIndicator(destination, 0xff0000));
 
@@ -458,10 +504,12 @@ export class CubeManager {
     return path;
   }
 
-  // Returns the neighbors of a cube position in a 2D dimension (x,z)
   getNeighbors(cubePosition: THREE.Vector3, cost: Map<string, number>) {
     let neighbors: THREE.Vector3[] = [];
     const { x, y, z } = cubePosition;
+
+    let isGoingUp = false;
+    let isGoingDown = false;
 
     // Check each primary direction
     const directions = [
@@ -476,14 +524,28 @@ export class CubeManager {
       neighbors.push(neighborPosition);
 
       // UP
-      if (this.getReferenceAtPosition(neighborPosition)?.isAtDestination) {
+      if (
+        this.findCubeReferenceAtPosition(neighborPosition)?.isAtDestination &&
+        !isGoingUp
+      ) {
         const upwardPosition = new THREE.Vector3(x, y + 1, z);
         neighbors.push(upwardPosition);
+        isGoingUp = true;
       }
 
-      // if(y > 0.5) {
-      //     const dropDownPosition =
-      // }
+      // DOWN
+      if (y > 0.5 && !isGoingDown) {
+        const neighborDownWardPosition = new THREE.Vector3(
+          x + dx,
+          y - 1,
+          z + dz
+        );
+        if (!this.findCubeReferenceAtPosition(neighborDownWardPosition)) {
+          const upwardPosition = new THREE.Vector3(x, y - 1, z);
+          neighbors.push(upwardPosition);
+          isGoingDown = true;
+        }
+      }
     }
 
     const newCost = cost.get(vectorToKey(cubePosition))! + 1;
@@ -508,7 +570,7 @@ export class CubeManager {
         }
       })
       .filter((neighbor) => {
-        const ref = this.getReferenceAtPosition(neighbor);
+        const ref = this.findCubeReferenceAtPosition(neighbor);
         return !(ref && ref.isVisible);
       });
     return neighbors;
@@ -525,7 +587,7 @@ export class CubeManager {
     this.stepIndex = 0;
   }
 
-  getReferenceAtPosition(position: THREE.Vector3) {
+  findCubeReferenceAtPosition(position: THREE.Vector3) {
     return (
       this.references.find(
         (ref) =>

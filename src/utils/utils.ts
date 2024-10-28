@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import { Howl } from 'howler';
 
-export function randomWithExclusion(
+export const randomWithExclusion = (
   min: number,
   max: number,
   excludeMin: number,
   excludeMax: number
-): number {
+): number => {
   const range1 = excludeMin - min;
   const range2 = max - excludeMax;
   const totalRange = range1 + range2;
@@ -18,14 +18,14 @@ export function randomWithExclusion(
   } else {
     return excludeMax + (randomValue - range1);
   }
-}
+};
 
-export function randomInt(min: number, max: number) {
+export const randomInt = (min: number, max: number) => {
   // min and max included
   return Math.floor(Math.random() * (max - min + 1) + min);
-}
+};
 
-export function roundToNearestHalf(value: number) {
+export const roundToNearestHalf = (value: number) => {
   let rounded = Math.round(value * 2) / 2;
 
   // If the rounded value is 0, go lower (e.g., -0.5 or further)
@@ -34,14 +34,14 @@ export function roundToNearestHalf(value: number) {
   }
 
   return rounded;
-}
+};
 
-export function shuffle(array: any[]) {
+export const shuffle = (array: any[]) => {
   return array
     .map((value) => ({ value, sort: Math.random() }))
     .sort((a, b) => a.sort - b.sort)
     .map(({ value }) => value);
-}
+};
 
 const soundPop = new Howl({
   src: ['./src/sounds/pop.mp3'],
@@ -83,6 +83,7 @@ export const sounds = {
 };
 
 export type Reference = {
+  id: string;
   start: THREE.Vector3;
   destination: THREE.Vector3;
   current: THREE.Vector3;
@@ -98,7 +99,7 @@ export const clamp = (num: number, lower: number, upper: number) => {
 export const vectorToKey = (vector: THREE.Vector3) =>
   `${vector.x},${vector.y},${vector.z}`;
 
-function createTextSprite(text, color = 'black') {
+const createTextSprite = (text, color = 'black') => {
   const canvas = document.createElement('canvas');
   const context = canvas.getContext('2d');
 
@@ -115,7 +116,7 @@ function createTextSprite(text, color = 'black') {
   const sprite = new THREE.Sprite(spriteMaterial);
 
   return sprite;
-}
+};
 
 export const pathIndicator = (
   position: THREE.Vector3,
@@ -127,7 +128,6 @@ export const pathIndicator = (
   if (color === 0xff0000) {
     yPos = 0.5;
   }
-  // Create the border using EdgesGeometry
   const edges = new THREE.EdgesGeometry(geometry);
   const lineMaterial = new THREE.LineBasicMaterial({ color });
   const border = new THREE.LineSegments(edges, lineMaterial);
@@ -147,6 +147,6 @@ export const pathIndicator = (
   return group;
 };
 
-export function logVector(vec: THREE.Vector3) {
+export const logVector = (vec: THREE.Vector3) => {
   return `${vec.x.toFixed(2)}, ${vec.y.toFixed(2)}, ${vec.z.toFixed(2)}`;
-}
+};
