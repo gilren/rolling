@@ -106,7 +106,6 @@ export class CubeManager {
           const endZ = z + 0.5;
 
           const startPosition = this.generateRandomStartPosition();
-          this.updateInstanceMatrix(index, startPosition.matrix);
 
           this.instance.setColorAt(
             index,
@@ -115,7 +114,6 @@ export class CubeManager {
             )
           );
 
-          index++;
           const ref: Reference = {
             id: index,
             start: startPosition.position,
@@ -124,7 +122,9 @@ export class CubeManager {
             isAtDestination: false,
           };
 
+          this.updateInstanceMatrix(index, startPosition.matrix);
           this.queue.enqueue(ref);
+          index++;
         }
       }
     }
