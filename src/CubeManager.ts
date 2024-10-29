@@ -247,7 +247,7 @@ export class CubeManager {
       tl.to(
         revealPosition,
         {
-          y: 0,
+          y: 0.325,
           duration: this.speed / 4,
           ease: 'power2.inOut',
 
