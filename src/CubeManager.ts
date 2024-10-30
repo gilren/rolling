@@ -6,16 +6,16 @@ import {
   randomInt,
   randomWithExclusion,
   Reference,
+  roundNearZero,
+  shuffle,
   sounds,
   vectorToKey,
 } from './utils/utils';
-import { COLORS, DELAY, ITERATIVE, SHOW_ALL, SHUFFLE, SPEED } from './settings';
+import { COLORS, SHOW_ALL, SHOW_PATHS, SPEED } from './settings';
 
 export class CubeManager {
   instance!: THREE.InstancedMesh;
-
   references: Reference[];
-
   queue: PriorityQueue<Reference>;
 
   count: number;
@@ -23,25 +23,27 @@ export class CubeManager {
   scene: THREE.Scene;
   size: number;
 
-  sounds: { pop: Howl; roll: Howl; squeakIn: Howl; squeakOut: Howl } = sounds;
-
-  stepIndex: number = 0;
+  sounds: { pop: Howl; roll: Howl; squeakIn: Howl; squeakOut: Howl } | null =
+    sounds;
 
   // Options
   colors = COLORS;
   speed: number = SPEED;
-  delay: number = DELAY;
-  shuffle: boolean = SHUFFLE;
-  iterative: boolean = ITERATIVE;
   showAll: boolean = SHOW_ALL;
+  showPaths: boolean = SHOW_PATHS;
 
-  constructor(scene: THREE.Scene, size: number) {
+  constructor(scene: THREE.Scene, size: number, speed: number) {
     this.scene = scene;
     this.size = size;
     this.count = Math.pow(size, 3);
+    this.speed = speed;
+
+    if (this.speed < 0.1) {
+      this.sounds = null;
+    }
 
     this.queue = new PriorityQueue((a, b) => {
-      if (a.destination.y > b.destination.y) {
+      if (a.destinationPosition.y > b.destinationPosition.y) {
         return 1;
       } else {
         return -1;
@@ -52,40 +54,6 @@ export class CubeManager {
 
     this.initializeCubes();
     this.processQueue();
-
-    // setTimeout(() => {
-    //   this.processQueue();
-    // }, 2000);
-  }
-
-  async processQueue() {
-    while (!this.queue.isEmpty()) {
-      const ref = this.queue.dequeue();
-
-      await this.showCube(ref);
-      this.references.push(ref);
-
-      const path = this.findPathToDestination(ref);
-
-      // const sphere = new THREE.SphereGeometry(0.1);
-      // const color = new THREE.Color(0x0000ff);
-      // color.setHex(Math.random() * 0xffffff);
-
-      // path?.forEach((position) => {
-      //   const mesh = new THREE.Mesh(
-      //     sphere,
-      //     new THREE.MeshBasicMaterial({ color: color })
-      //   );
-      //   mesh.position.set(position.x, position.y, position.z);
-      //   this.scene.add(mesh);
-      // });
-
-      if (path) {
-        await this.animateMovementAlongPath(ref, path);
-      } else {
-        console.error('Could not find path');
-      }
-    }
   }
 
   initializeCubes() {
@@ -116,9 +84,9 @@ export class CubeManager {
 
           const ref: Reference = {
             id: index,
-            start: startPosition.position,
-            destination: new THREE.Vector3(endX, endY, endZ),
-            current: startPosition.position,
+            startPosition: startPosition.position,
+            destinationPosition: new THREE.Vector3(endX, endY, endZ),
+            currentPosition: startPosition.position,
             isAtDestination: false,
           };
 
@@ -128,11 +96,51 @@ export class CubeManager {
         }
       }
     }
-    // if (this.shuffle) {
-    //   this.references = shuffle(this.references);
-    // }
+
+    // Shuffle the queue by levels
+    this.queue = PriorityQueue.fromArray<Reference>(
+      shuffle(this.queue.toArray()),
+      (a, b) => {
+        if (a.destinationPosition.y > b.destinationPosition.y) {
+          return 1;
+        } else {
+          return -1;
+        }
+      }
+    );
 
     this.scene.add(this.instance);
+  }
+
+  async processQueue() {
+    while (!this.queue.isEmpty()) {
+      const ref = this.queue.dequeue();
+
+      await this.showCube(ref);
+      this.references.push(ref);
+
+      const path = this.findPathToDestination(ref);
+
+      if (this.showPaths) {
+        const sphere = new THREE.SphereGeometry(0.1);
+        const color = new THREE.Color(0x0000ff);
+        color.setHex(Math.random() * 0xffffff);
+
+        path?.forEach((position) => {
+          const mesh = new THREE.Mesh(
+            sphere,
+            new THREE.MeshBasicMaterial({ color: color })
+          );
+          mesh.position.set(position.x, position.y, position.z);
+          this.scene.add(mesh);
+        });
+      }
+      if (path) {
+        await this.animateMovementAlongPath(ref, path);
+      } else {
+        console.error('Could not find path');
+      }
+    }
   }
 
   generateRandomStartPosition(): {
@@ -183,7 +191,7 @@ export class CubeManager {
       });
 
       const revealPosition = new THREE.Vector3();
-      revealPosition.copy(ref.current);
+      revealPosition.copy(ref.currentPosition);
       revealPosition.y = this.size + Math.random() * 5;
       currentMatrix.setPosition(revealPosition);
       this.updateInstanceMatrix(index, currentMatrix);
@@ -197,10 +205,7 @@ export class CubeManager {
         ease: 'power2.out',
 
         onStart: () => {
-          // TODO: Find a cleaner way to do this ?
-          this.sounds.pop.play();
-          // setTimeout(() => {
-          // }, (this.speed * 1.5) / 10);
+          this.sounds?.pop.play();
         },
 
         onUpdate: () => {
@@ -232,7 +237,7 @@ export class CubeManager {
           ease: 'power2.inOut',
 
           onStart: () => {
-            this.sounds.squeakIn.play();
+            this.sounds?.squeakIn.play();
           },
 
           onUpdate: () => {
@@ -265,7 +270,7 @@ export class CubeManager {
         ease: 'power2.inOut',
 
         onComplete: () => {
-          this.sounds.squeakOut.play();
+          this.sounds?.squeakOut.play();
         },
       });
 
@@ -295,23 +300,86 @@ export class CubeManager {
   ): Promise<void> {
     return new Promise(async (resolve) => {
       const index = ref.id;
-      let currentPosition = new THREE.Vector3().copy(ref.current);
-      for (const path of paths) {
-        const diffX = path.x - currentPosition.x;
-        const diffY = path.y - currentPosition.y;
-        const diffZ = path.z - currentPosition.z;
 
-        const direction =
-          diffX !== 0
-            ? { x: diffX }
-            : diffY !== 0
-            ? { y: diffY }
-            : { z: diffZ };
-        const axis = Object.keys(direction)[0] as 'x' | 'y' | 'z';
-        const value = direction[axis] as number;
+      let forwardDirection = new THREE.Vector3(0, 0, 1);
 
-        await this.animateMovementInDirection(ref, axis, value, index);
-        currentPosition = new THREE.Vector3().copy(path);
+      const angle = Math.PI / 2;
+
+      for (let i = 0; i < paths.length; i++) {
+        const path = paths[i];
+        let direction = path.clone().sub(ref.currentPosition).normalize();
+        const dot = forwardDirection.clone().dot(direction);
+        let angleSign =
+          Math.sign(direction.x) ||
+          Math.sign(direction.y) ||
+          Math.sign(direction.z);
+
+        let rotationAxis = new THREE.Vector3();
+
+        // Handle movement along the y-axis
+        if (Math.abs(direction.y) > 0) {
+          //TODO: FIX THIS
+          rotationAxis = new THREE.Vector3(0, 0, 0);
+        } else {
+          // Default axis of rotation (y-axis) and starting origin
+          let angleAxis = new THREE.Vector3(0, 1, 0);
+          let origin = forwardDirection;
+
+          // Adjust rotation axis for perpendicular vectors
+          if (dot === 0) {
+            // Use cross product to get the perpendicular vector for rotation
+            origin = forwardDirection.clone().cross(direction).normalize();
+            angleAxis = direction;
+            angleSign *= -1;
+          }
+
+          // Apply the rotation to the calculated origin around the specified angleAxis
+          rotationAxis = origin
+            .clone()
+            .applyAxisAngle(angleAxis, angle * angleSign)
+            .normalize();
+        }
+
+        rotationAxis = roundNearZero(rotationAxis);
+
+        const tempTimeline = gsap.timeline();
+
+        const dummy = { angle: 0 };
+        tempTimeline.to(dummy, {
+          angle: angle,
+          duration: this.speed,
+          ease: 'power2.inOut',
+          onComplete: () => {
+            this.sounds?.roll.play();
+          },
+        });
+
+        tempTimeline.to(
+          ref.currentPosition,
+          {
+            x: ref.currentPosition.x + direction.x,
+            y: ref.currentPosition.y + direction.y,
+            z: ref.currentPosition.z + direction.z,
+            duration: this.speed,
+            ease: 'power2.inOut',
+            onUpdate: () => {
+              const quaternion = new THREE.Quaternion().setFromAxisAngle(
+                rotationAxis,
+                dummy.angle
+              );
+              const matrix = new THREE.Matrix4();
+              matrix.compose(
+                ref.currentPosition,
+                quaternion,
+                new THREE.Vector3(1, 1, 1)
+              );
+              this.updateInstanceMatrix(index, matrix);
+            },
+          },
+          '<'
+        );
+
+        await tempTimeline.play();
       }
 
       ref.isAtDestination = true;
@@ -319,65 +387,17 @@ export class CubeManager {
     });
   }
 
-  animateMovementInDirection(
-    ref: Reference,
-    axis: 'x' | 'y' | 'z',
-    value: number,
-    index: number
-  ): Promise<void> {
-    return new Promise((resolve) => {
-      const rotationAxis = axis === 'x' ? 'z' : axis === 'z' ? 'x' : 'z';
-      let rotationAngle =
-        (axis === 'x' && value > 0) || (axis === 'z' && value < 0)
-          ? -Math.PI / 2
-          : Math.PI / 2;
-
-      const currentRotation = new THREE.Euler(0, 0, 0);
-      const tempTimeline = gsap.timeline({
-        onComplete: () => resolve(),
-      });
-
-      // Animate rotation
-      tempTimeline.to(currentRotation, {
-        [rotationAxis]: rotationAngle,
-        duration: this.speed,
-        ease: 'power2.inOut',
-        onComplete: () => {
-          this.sounds.roll.play();
-        },
-      });
-
-      // Animate movement
-      tempTimeline.to(
-        ref.current,
-        {
-          [axis]: ref.current[axis] + value,
-          duration: this.speed,
-          ease: 'power2.inOut',
-          onUpdate: () => {
-            const matrix = new THREE.Matrix4();
-            const quaternion = new THREE.Quaternion().setFromEuler(
-              currentRotation
-            );
-            matrix.compose(ref.current, quaternion, new THREE.Vector3(1, 1, 1));
-            this.updateInstanceMatrix(index, matrix);
-          },
-        },
-        '<'
-      );
-    });
-  }
-
   findPathToDestination(ref: Reference): THREE.Vector3[] | null {
     console.log(
-      `START: ${ref.start.x}, ${ref.start.y}, ${ref.start.z} => DESTINATION: ${ref.destination.x}, ${ref.destination.y}, ${ref.destination.z}`
+      `START: ${ref.startPosition.x}, ${ref.startPosition.y}, ${ref.startPosition.z} => DESTINATION: ${ref.destinationPosition.x}, ${ref.destinationPosition.y}, ${ref.destinationPosition.z}`
     );
 
-    const start = ref.start;
-    const destination = ref.destination;
+    const start = ref.startPosition;
+    const destination = ref.destinationPosition;
 
     //TODO: Verify possibility of happening, might be useless
     if (start.equals(destination)) return [];
+    if (this.findCubeReferenceAtPosition(destination)) return [];
 
     let pathFound = false;
     const distance = 40;
@@ -502,11 +522,8 @@ export class CubeManager {
       ) {
         // Assign cost based on movement direction
         let movementCost = newCost;
-        if (neighbor.y > cubePosition.y) {
-          // Moving up, higher cost
-          movementCost = newCost + 2;
-        } else if (neighbor.y < cubePosition.y) {
-          // Moving down, moderate cost
+        if (neighbor.y > cubePosition.y || neighbor.y < cubePosition.y) {
+          // Moving up or down, higher cost
           movementCost = newCost + 1;
         }
         cost.set(vectorToKey(neighbor), movementCost);
@@ -526,13 +543,13 @@ export class CubeManager {
 
   reset() {
     this.references = [];
+    this.queue.clear();
     this.instance.clear();
-    this.stepIndex = 0;
   }
 
   findCubeReferenceAtPosition(position: THREE.Vector3) {
     return this.references.find((ref: Reference) =>
-      ref.current.equals(position)
+      ref.currentPosition.equals(position)
     );
   }
 }

@@ -7,7 +7,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 import GUI from 'lil-gui';
 import { Terrain } from './Terrain';
 
-import { SIZE } from './settings';
+import { SHOW_ALL, SHOW_ALL, SIZE, SPEED } from './settings';
 import { CubeManager } from './CubeManager';
 
 class App {
@@ -25,7 +25,10 @@ class App {
 
   cubeManager!: CubeManager;
 
-  size: number;
+  size: number = SIZE;
+  speed: number = SPEED;
+
+  showAll: boolean = SHOW_ALL;
 
   constructor(size: number = SIZE) {
     this.width = window.innerWidth;
@@ -73,7 +76,7 @@ class App {
   }
 
   initManagers() {
-    this.cubeManager = new CubeManager(this.scene, this.size);
+    this.cubeManager = new CubeManager(this.scene, this.size, this.speed);
   }
 
   initStats() {
@@ -85,14 +88,9 @@ class App {
     this.gui = new GUI();
 
     this.gui.add(this, 'size', 2, 10, 1).name('Size');
-    this.gui.add(this.cubeManager, 'speed', 0.1, 1, 0.05).name('Speed');
-    this.gui.add(this.cubeManager, 'iterative');
-    this.gui.add(this.cubeManager, 'delay', 1000, 10000, 1000).name('Delay');
-    this.gui.add(this.cubeManager, 'shuffle');
-    this.gui.add(this.cubeManager, 'showAll');
+    this.gui.add(this, 'speed', 0, 1, 0.05).name('Speed');
 
     this.gui.onChange(() => {
-      console.log('aze');
       this.resetScene();
     });
   }
