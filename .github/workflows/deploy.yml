@@ -28,17 +28,21 @@ jobs:
         with:
           node-version: lts/*
 
+      - name: Configure .npmrc
+        run: |
+          echo "always-auth=true
+          //npm.greensock.com/:_authToken=${{ secrets.NPM_AUTH_TOKEN }}
+          @gsap:registry=https://npm.greensock.com" > ~/.npmrc
+
       - name: Install step
-        run: "npm install"
+        run: 'npm install'
 
       - name: Build step
-        run: "npm run build"
+        run: 'npm run build'
 
       - name: Upload to Deno Deploy
         uses: denoland/deployctl@v1
         with:
-          project: "rolling"
-          entrypoint: "jsr:@std/http/file-server"
-          root: "dist"
-          
-          
+          project: 'rolling'
+          entrypoint: 'jsr:@std/http/file-server'
+          root: 'dist'
