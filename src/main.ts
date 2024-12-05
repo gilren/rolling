@@ -7,7 +7,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 import GUI from 'lil-gui';
 import { Terrain } from './Terrain';
 
-import { SHOW_ALL, SHOW_ALL, SIZE, SPEED } from './settings';
+import { SHOW_ALL, SIZE, SPEED } from './settings';
 import { CubeManager } from './CubeManager';
 
 class App {
